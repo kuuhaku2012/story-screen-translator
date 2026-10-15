@@ -1,0 +1,20 @@
+{
+  "entries": [
+    {
+      "canonicalName": "Rover",
+      "aliases": ["the Rover"],
+      "category": "character"
+    },
+    {
+      "canonicalName": "Yangyang",
+      "aliases": ["Yang Yang"],
+      "category": "character"
+    },
+    {
+      "canonicalName": "Jinzhou",
+      "aliases": [],
+      "category": "location"
+    }
+  ],
+  "note": "Illustrative examples only; not an exhaustive game glossary."
+}
