@@ -34,6 +34,7 @@ public sealed class StoryTranslationPipeline
                 _sessionGeneration++;
                 _lineGeneration++;
             }
+            _stability.Reset();
             _presentationGate.Activate();
         }
     }
@@ -47,6 +48,7 @@ public sealed class StoryTranslationPipeline
                 _sessionGeneration++;
                 _lineGeneration++;
             }
+            _stability.Reset();
             _presentationGate.TurnOff();
         }
     }
@@ -63,7 +65,12 @@ public sealed class StoryTranslationPipeline
             {
                 if (!_presentationGate.IsActive) return false;
 
-                stableLine = _stability.Observe(recognizedText);
+                var observation = _stability.ObserveDetailed(recognizedText);
+                stableLine = observation.StableLine;
+                if (observation.CandidateChanged)
+                {
+                    lock (_generationGate) _lineGeneration++;
+                }
                 if (stableLine is null)
                 {
                     ticket = default;

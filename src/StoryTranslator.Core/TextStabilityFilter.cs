@@ -10,27 +10,39 @@ public sealed class TextStabilityFilter
     private string? _lastEmitted;
 
     public string? Observe(string? text)
+        => ObserveDetailed(text).StableLine;
+
+    /// <summary>Observes normalized OCR text and reports candidate changes before a line becomes stable.</summary>
+    public TextStabilityObservation ObserveDetailed(string? text)
     {
         var normalized = Normalize(text);
         if (normalized is null)
         {
+            var changed = _candidate is not null;
             _candidate = null;
-            return null;
+            return new TextStabilityObservation(null, changed);
         }
 
         if (!string.Equals(_candidate, normalized, StringComparison.Ordinal))
         {
             _candidate = normalized;
-            return null;
+            return new TextStabilityObservation(null, true);
         }
 
         if (string.Equals(_lastEmitted, normalized, StringComparison.Ordinal))
         {
-            return null;
+            return new TextStabilityObservation(null, false);
         }
 
         _lastEmitted = normalized;
-        return normalized;
+        return new TextStabilityObservation(normalized, false);
+    }
+
+    /// <summary>Clears candidate and deduplication state, for example at a Story Mode session boundary.</summary>
+    public void Reset()
+    {
+        _candidate = null;
+        _lastEmitted = null;
     }
 
     private static string? Normalize(string? text)
@@ -64,3 +76,5 @@ public sealed class TextStabilityFilter
         return builder.ToString();
     }
 }
+
+public readonly record struct TextStabilityObservation(string? StableLine, bool CandidateChanged);

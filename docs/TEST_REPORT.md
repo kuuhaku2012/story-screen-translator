@@ -9,13 +9,15 @@ Các bài kiểm thử chạy bằng frame tổng hợp, OCR giả xác định,
 ## Kết quả
 
 - `OfflinePipelineTests`: 3/3 đạt.
-- `StoryTranslationPipelineTests`: 2/2 đạt; kịch bản `A,A,B,B,A,A` chỉ gọi translator cho hai câu khác nhau và câu A trở lại được lấy từ cache.
-- `StaleTranslationPresentationTests`: 2/2 đạt với coordinator giả cố ý trả kết quả muộn; A chậm không ghi đè B nhanh, và A hoàn tất sau OFF/ON không xuất hiện trong phiên mới.
+- `StoryTranslationPipelineTests`: 3/3 đạt; kịch bản `A,A,B,B,A,A` chỉ gọi translator cho hai câu khác nhau và câu A trở lại được lấy từ cache; cùng câu được ổn định lại sau OFF/ON.
+- `StaleTranslationPresentationTests`: 4/4 đạt với coordinator giả cố ý trả kết quả muộn; A chậm không ghi đè B nhanh, candidate B làm vô hiệu A ngay ở mẫu đầu, A hoàn tất sau OFF/ON không xuất hiện trong phiên mới, và callback cũ đã xếp hàng bị chặn khi flush sau OFF/ON.
+- `TextStabilityFilterTests`: có kiểm tra candidate normalized thay đổi riêng với lúc ổn định, cùng reset candidate/dedupe ở ranh giới session.
 - Token glossary ổn định giữa hai lần bảo vệ cùng một câu; tên vẫn được khôi phục đúng.
 - Pipeline Core sản phẩm dùng chung trong integration test, tuần tự hóa cập nhật filter mà không giữ khóa trong lúc dịch; coordinator vẫn có thể hủy dòng cũ khi dòng mới tới.
-- Cổng overlay kiểm tra trạng thái OFF khi nhận và khi dispatcher thực hiện cập nhật; test OFF đồng thời với show để bảo đảm OFF/hide hoàn tất sau lần show đang chạy.
+- Deferred-overlay fake lưu callback rồi gọi guard khi test chủ động flush hàng đợi; các test xác minh guard loại callback cũ sau OFF/ON. Đây là mô phỏng ranh giới callback, không phải xác minh tích hợp hoặc hình ảnh thực tế của WPF Dispatcher.
 - Dòng trả về `true` từ lời gọi hiển thị nghĩa là overlay nhận yêu cầu hoặc đã xếp nó lên dispatcher; guard có thể loại bỏ yêu cầu cũ trước khi UI cập nhật. Đây không phải xác nhận rằng pixel đã được vẽ lên màn hình.
-- Mỗi câu ổn định mang generation của dòng hiện tại và session Story Mode. Pipeline kiểm tra generation trước khi gửi dịch, khi nhận kết quả và trong callback dispatcher; OFF/ON làm vô hiệu hóa mọi kết quả đang bay của session trước.
+- Khi candidate OCR chuẩn hóa thay đổi (ngay từ quan sát đầu tiên của câu mới), generation dòng tăng để vô hiệu hóa kết quả câu cũ. OFF/ON reset candidate và last-emitted, đồng thời tăng generation session; cùng một câu còn trên màn hình có thể ổn định lại và dùng cache.
+- Pipeline kiểm tra generation trước khi gửi dịch, khi nhận kết quả và trong callback đã xếp hàng; fake trì hoãn callback để kiểm tra hành vi này. WPF Dispatcher thật chưa được kiểm thử hiển thị.
 - Luồng frame giả → OCR giả → đợi câu ổn định → bảo vệ tên riêng → dịch giả → khôi phục tên → overlay gate được kiểm tra.
 - Tên `Rover` và `Academy` được giữ nguyên trong kết quả giả.
 - Câu lặp không làm gọi translator lần hai; cache trả kết quả đã có.
@@ -36,8 +38,15 @@ dotnet test StoryTranslator.sln
 dotnet build StoryTranslator.sln -c Release
 ```
 
-- `dotnet test StoryTranslator.sln`: PASS, 62 passed, 0 failed, 0 skipped.
+- `dotnet test StoryTranslator.sln`: PASS, 65 passed, 0 failed, 0 skipped (fresh exact solution run).
 - `dotnet build StoryTranslator.sln -c Release`: PASS, 0 warning, 0 error.
+
+## RED/GREEN evidence
+
+- Removing first-candidate generation invalidation made the adversarial “A completes after B's first OCR sample” test fail because stale A was accepted.
+- Removing stability reset made the OFF/ON repeat-line test fail because A did not stabilize again.
+- Removing the deferred-overlay callback guard made the queued OFF/ON callback test fail because stale A appeared after queue flush.
+- Restoring all three behaviors made these regressions pass. The deferred callback is a fake boundary test, not a real WPF Dispatcher integration test.
 
 ## Chưa đo / chưa xác minh
 

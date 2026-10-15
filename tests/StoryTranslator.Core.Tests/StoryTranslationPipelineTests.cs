@@ -52,6 +52,32 @@ public sealed class StoryTranslationPipelineTests
         Assert.Equal(0, overlay.ShowCount);
     }
 
+    [Fact]
+    public async Task SameVisibleLineAfterOffOn_IsStabilizedAgainAndUsesCachedTranslation()
+    {
+        var translator = new RecordingTranslator();
+        var coordinator = new TranslationCoordinator(translator);
+        var overlay = new RecordingOverlay();
+        var gate = new TranslationPresentationGate(overlay, coordinator.CancelPending);
+        var pipeline = new StoryTranslationPipeline(
+            new TextStabilityFilter(),
+            new GlossaryProtector([]),
+            coordinator,
+            gate);
+        pipeline.Enable();
+
+        Assert.False(await pipeline.ObserveAsync("A"));
+        Assert.True(await pipeline.ObserveAsync("A"));
+        pipeline.TurnOff();
+        pipeline.Enable();
+
+        Assert.False(await pipeline.ObserveAsync("A"));
+        Assert.True(await pipeline.ObserveAsync("A"));
+
+        Assert.Equal(1, translator.CallCount);
+        Assert.Equal(new[] { "VI A", "VI A" }, overlay.Translations);
+    }
+
     private sealed class RecordingTranslator(bool fail = false) : ITextTranslator
     {
         public int CallCount { get; private set; }

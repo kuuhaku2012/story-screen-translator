@@ -33,6 +33,34 @@ public sealed class StaleTranslationPresentationTests
     }
 
     [Fact]
+    public async Task ACompletingAfterFirstBObservation_IsInvalidatedBeforeBIsStable()
+    {
+        var submitter = new DeferredSubmitter();
+        var overlay = new DeferredOverlay();
+        var gate = new TranslationPresentationGate(overlay, () => { });
+        var pipeline = CreatePipeline(submitter, gate);
+        pipeline.Enable();
+
+        Assert.False(await pipeline.ObserveAsync("A"));
+        var pendingA = pipeline.ObserveAsync("A");
+        await submitter.WaitForCountAsync(1);
+
+        Assert.False(await pipeline.ObserveAsync("B"));
+        submitter.Complete("A", "translated A");
+        Assert.False(await pendingA);
+        overlay.FlushPending();
+        Assert.Empty(overlay.Displayed);
+
+        var pendingB = pipeline.ObserveAsync("B");
+        await submitter.WaitForCountAsync(2);
+        submitter.Complete("B", "translated B");
+        Assert.True(await pendingB);
+        overlay.FlushPending();
+
+        Assert.Equal(new[] { "translated B" }, overlay.Displayed);
+    }
+
+    [Fact]
     public async Task OldTranslationCompletingAfterOffOn_CannotReappearInNewSession()
     {
         var submitter = new DeferredSubmitter();
@@ -53,6 +81,29 @@ public sealed class StaleTranslationPresentationTests
 
         Assert.True(gate.IsActive);
         Assert.Empty(overlay.Displayed);
+    }
+
+    [Fact]
+    public async Task CallbackQueuedBeforeOffOn_IsRejectedWhenDispatcherQueueIsFlushed()
+    {
+        var submitter = new DeferredSubmitter();
+        var overlay = new DeferredOverlay();
+        var gate = new TranslationPresentationGate(overlay, () => { });
+        var pipeline = CreatePipeline(submitter, gate);
+        pipeline.Enable();
+
+        Assert.False(await pipeline.ObserveAsync("A"));
+        var pendingA = pipeline.ObserveAsync("A");
+        await submitter.WaitForCountAsync(1);
+        submitter.Complete("A", "queued old A");
+        Assert.True(await pendingA);
+
+        pipeline.TurnOff();
+        pipeline.Enable();
+        overlay.FlushPending();
+
+        Assert.Empty(overlay.Displayed);
+        Assert.True(gate.IsActive);
     }
 
     private static StoryTranslationPipeline CreatePipeline(DeferredSubmitter submitter, TranslationPresentationGate gate) =>

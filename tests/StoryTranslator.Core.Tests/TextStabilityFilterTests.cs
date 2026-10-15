@@ -2,6 +2,33 @@ namespace StoryTranslator.Core.Tests;
 
 public sealed class TextStabilityFilterTests
 {
+    [Fact]
+    public void ObserveDetailed_ReportsNormalizedCandidateChangesBeforeStability()
+    {
+        var filter = new TextStabilityFilter();
+
+        var first = filter.ObserveDetailed("  beta  ");
+        var second = filter.ObserveDetailed("beta");
+
+        Assert.True(first.CandidateChanged);
+        Assert.Null(first.StableLine);
+        Assert.False(second.CandidateChanged);
+        Assert.Equal("beta", second.StableLine);
+    }
+
+    [Fact]
+    public void Reset_ClearsCandidateAndLastEmittedLine()
+    {
+        var filter = new TextStabilityFilter();
+        Assert.Null(filter.Observe("alpha"));
+        Assert.Equal("alpha", filter.Observe("alpha"));
+
+        filter.Reset();
+
+        Assert.Null(filter.Observe("alpha"));
+        Assert.Equal("alpha", filter.Observe("alpha"));
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
