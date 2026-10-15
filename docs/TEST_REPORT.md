@@ -30,6 +30,7 @@ Các kết quả trên kiểm chứng logic ứng dụng với thành phần gi�
 ## Build và test
 
 Generation/session validation fix: commit `c68228a0fdb0573b9a2a42f6e9e07da5f18a4b4c`.
+Sửa vô hiệu hóa ngay khi candidate đổi, reset bộ lọc theo session và guard callback trì hoãn: commit `de99c4f4b05c22b08aa32857dc53f222eb5a900c`.
 
 Đã chạy sau khi thêm các bài kiểm thử offline, bằng SDK local .NET 10:
 
