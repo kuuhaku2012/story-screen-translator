@@ -33,7 +33,7 @@ Chính sách công khai của Kuro không xác định rõ OCR overlay có đư�
 7. Khi tắt: hủy tác vụ chờ, dừng capture và ẩn overlay.
 
 ## Thiết kế kỹ thuật
-Ứng dụng WPF bằng C#/.NET 10 trên Windows; xử lý nghiệp vụ nằm trong class library để test không cần desktop. Dùng Windows OCR cho nhận dạng và API desktop công khai để chụp vùng crop người dùng chọn. Overlay là cửa sổ riêng, không vẽ/attach vào tiến trình game. Bộ dịch được trừu tượng hóa; SQLite dùng cho cache. Cấu hình glossary nằm trong app data; API key dùng Windows Credential Manager.
+Ứng dụng WPF bằng C#/.NET 10 trên Windows; xử lý nghiệp vụ nằm trong class library để test không cần desktop. Dùng Windows OCR cho nhận dạng và API desktop công khai để chụp vùng crop người dùng chọn. Overlay là cửa sổ riêng, không vẽ/attach vào tiến trình game. Bộ dịch được trừu tượng hóa; cache JSON có giới hạn dung lượng, không cần thêm database runtime. Cấu hình glossary nằm trong app data; API key dùng Windows Credential Manager.
 
 ## Quyền riêng tư
 Không ghi frame ảnh hoặc text thoại vào log mặc định. Chỉ log mã lỗi, trạng thái và thời gian xử lý. Không lưu thông tin đăng nhập game. Chỉ gửi dòng OCR cần dịch; cần chốt nhà cung cấp, chi phí và cách giữ API key trước khi bật dịch mạng.
@@ -49,4 +49,5 @@ Không ghi frame ảnh hoặc text thoại vào log mặc định. Chỉ log mã
 
 ## Mặc định ban đầu
 Ngôn ngữ vào English, đích Vietnamese. Dịch mạng chưa bật cho tới khi người dùng chọn nhà cung cấp. Lấy mẫu ban đầu 2 khung/giây; ổn định sau 2 lần nhận diện liên tiếp. Đo thực tế trước khi cố định thông số.
+
 

@@ -6,7 +6,7 @@
 
 **Architecture:** A WPF shell controls an OCR pipeline in a Core library: explicit mode state, low-rate region capture, text stabilization/deduplication, glossary protection, translation adapter/cache, and a separate overlay. No game process access or input automation.
 
-**Tech Stack:** C#, .NET 10 Windows desktop, WPF, Windows OCR, SQLite cache, xUnit for Core behavior tests.
+**Tech Stack:** C#, .NET 10 Windows desktop, WPF, Windows OCR, bounded JSON cache, xUnit for Core behavior tests.
 
 **Spec:** docs/PROJECT_SPEC.md
 
@@ -129,9 +129,15 @@
 - Create: src/StoryTranslator.App/TranslationOverlay.xaml.cs
 - Create: src/StoryTranslator.App/SettingsStore.cs
 - Create: src/StoryTranslator.App/GlossaryStore.cs
+- Create: src/StoryTranslator.Core/JsonTranslationCache.cs
+- Create: tests/StoryTranslator.Core.Tests/JsonTranslationCacheTests.cs
 
 - [ ] Show the newest translation in a separate topmost WPF window with hide/close actions. Do not draw into or attach to another process.
 - [ ] Store region, sampling interval, language pair, and glossary in app data. Do not store secrets in JSON.
+- [ ] Write tests proving translation cache entries survive a reload, the cache evicts the oldest entry at 1,000 entries, and malformed cache files recover to an empty cache without logging dialogue text.
+- [ ] Run focused cache tests. Expected: FAIL because JsonTranslationCache is absent.
+- [ ] Implement an atomic JSON cache file with a hard 1,000-entry limit and no dialogue logging.
+- [ ] Re-run cache tests. Expected: all persistence and eviction tests PASS.
 - [ ] Verify OFF hides overlay and cancels work; ON permits new stabilized lines.
 
 ### Task 9: Integrate a translation provider after user selection
@@ -156,4 +162,5 @@
 - [ ] Measure CPU/RAM with mode OFF and ON, OCR-to-overlay latency, and translation request count. Report measured values only.
 - [ ] Package a portable Windows artifact and removal guide; exclude keys and account data.
 - [ ] Keep live game use gated on Kuro’s written confirmation. Offline success and alt-account use do not establish anti-cheat safety.
+
 
