@@ -73,7 +73,7 @@ public sealed class JsonTranslationCache : ITranslationCache
         {
             var records = JsonSerializer.Deserialize<List<CacheRecord>>(File.ReadAllText(_path));
             if (records is null) return;
-            foreach (var record in records.TakeLast(MaximumEntries))
+            foreach (var record in records.Take(MaximumEntries).Reverse())
             {
                 if (record is null || record.Source is null || record.Target is null || record.Translation is null) continue;
                 var key = new CacheKey(record.Source, record.Target);
@@ -128,3 +128,4 @@ public sealed class JsonTranslationCache : ITranslationCache
     private sealed record CacheEntry(CacheKey Key, string Translation);
     private sealed record CacheRecord(string? Source, string? Target, string? Translation);
 }
+

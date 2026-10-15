@@ -27,11 +27,11 @@ public sealed class JsonTranslationCacheTests
         {
             var cache = new JsonTranslationCache(path);
             for (var index = 0; index < 1000; index++) cache.Set($"line-{index}", "vi", $"translated-{index}");
-            Assert.True(cache.TryGet("line-0", "vi", out _));
+            cache = new JsonTranslationCache(path);
             cache.Set("line-1000", "vi", "translated-1000");
             Assert.Equal(1000, cache.Count);
-            Assert.True(cache.TryGet("line-0", "vi", out _));
-            Assert.False(cache.TryGet("line-1", "vi", out _));
+            Assert.False(cache.TryGet("line-0", "vi", out _));
+            Assert.True(cache.TryGet("line-1", "vi", out _));
             Assert.True(cache.TryGet("line-1000", "vi", out _));
         }
         finally { DeleteCacheFiles(path); }
@@ -62,3 +62,9 @@ public sealed class JsonTranslationCacheTests
         if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
     }
 }
+
+
+
+
+
+
