@@ -27,6 +27,8 @@ Các kết quả trên kiểm chứng logic ứng dụng với thành phần gi�
 
 ## Build và test
 
+Generation/session validation fix: commit `c68228a0fdb0573b9a2a42f6e9e07da5f18a4b4c`.
+
 Đã chạy sau khi thêm các bài kiểm thử offline, bằng SDK local .NET 10:
 
 ```powershell
