@@ -33,7 +33,10 @@
         </GroupBox>
 
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="OverlayButton" Content="Hiện bản dịch" Padding="12,8" Margin="0,0,10,0" Click="ShowOverlay_Click" />
             <Button Content="Thoát" Padding="18,8" IsCancel="True" Click="Exit_Click" />
         </StackPanel>
     </Grid>
 </Window>
+
+
