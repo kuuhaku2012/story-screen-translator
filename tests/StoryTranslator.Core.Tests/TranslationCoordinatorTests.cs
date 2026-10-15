@@ -80,6 +80,70 @@ public sealed class TranslationCoordinatorTests
         Assert.Equal("hai", second);
     }
 
+    [Fact]
+    public async Task ReplacedWorkIsCanceledEvenWhenCompletionWinsBeforeCancellationSignal()
+    {
+        using var allowCancellationSignal = new ManualResetEventSlim();
+        var detached = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var translator = new MultiCallCancellationIgnoringTranslator();
+        var cache = new InMemoryTranslationCache();
+        var coordinator = new TranslationCoordinator(translator, cache, () =>
+        {
+            detached.TrySetResult();
+            allowCancellationSignal.Wait();
+        });
+
+        var stale = coordinator.SubmitAsync("Old source", "vi");
+        await translator.WaitForCallCountAsync(1);
+        var submitNew = Task.Run(() => coordinator.SubmitAsync("New source", "vi"));
+        try
+        {
+            await detached.Task;
+            translator.Complete(0, "Late old translation");
+            await Task.WhenAny(stale, Task.Delay(TimeSpan.FromSeconds(3)));
+
+            Assert.True(stale.IsCompleted);
+            Assert.True(stale.IsCanceled);
+            Assert.False(cache.TryGet("Old source", "vi", out _));
+        }
+        finally
+        {
+            allowCancellationSignal.Set();
+        }
+
+        var newest = submitNew;
+        await translator.WaitForCallCountAsync(2);
+        translator.Complete(1, "New translation");
+        Assert.Equal("New translation", await newest);
+    }
+    private sealed class MultiCallCancellationIgnoringTranslator : ITextTranslator
+    {
+        private readonly object _gate = new();
+        private readonly List<TaskCompletionSource<string>> _completions = [];
+        public Task<string> TranslateAsync(string source, string target, CancellationToken cancellationToken)
+        {
+            lock (_gate)
+            {
+                var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                _completions.Add(completion);
+                return completion.Task;
+            }
+        }
+        public void Complete(int callIndex, string result)
+        {
+            lock (_gate) _completions[callIndex].TrySetResult(result);
+        }
+        public async Task WaitForCallCountAsync(int count)
+        {
+            var limit = DateTime.UtcNow.AddSeconds(3);
+            while (true)
+            {
+                lock (_gate) if (_completions.Count >= count) return;
+                if (DateTime.UtcNow >= limit) throw new TimeoutException($"Expected {count} translator calls.");
+                await Task.Delay(10);
+            }
+        }
+    }
     private sealed class ControlledTranslator : ITextTranslator
     {
         private readonly object _gate = new();

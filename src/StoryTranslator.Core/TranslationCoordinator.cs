@@ -76,12 +76,19 @@ public sealed class TranslationCoordinator
     private readonly object _gate = new();
     private readonly ITextTranslator _translator;
     private readonly ITranslationCache _cache;
+    private readonly Action? _beforeCancellationSignal;
     private Work? _current;
 
     public TranslationCoordinator(ITextTranslator translator, ITranslationCache? cache = null)
+        : this(translator, cache, beforeCancellationSignal: null)
+    {
+    }
+
+    internal TranslationCoordinator(ITextTranslator translator, ITranslationCache? cache, Action? beforeCancellationSignal)
     {
         _translator = translator ?? throw new ArgumentNullException(nameof(translator));
         _cache = cache ?? new InMemoryTranslationCache();
+        _beforeCancellationSignal = beforeCancellationSignal;
     }
 
     public Task<string> SubmitAsync(string line, string target = "vi", CancellationToken cancellationToken = default)
@@ -114,7 +121,7 @@ public sealed class TranslationCoordinator
             }
         }
 
-        previous?.Cancel();
+        SignalCancellation(previous);
         if (created is not null) _ = ExecuteAsync(created, line, target);
         return cancellationToken.CanBeCanceled ? resultTask.WaitAsync(cancellationToken) : resultTask;
     }
@@ -128,7 +135,7 @@ public sealed class TranslationCoordinator
             canceled = _current;
             _current = null;
         }
-        canceled?.Cancel();
+        SignalCancellation(canceled);
     }
 
     private async Task ExecuteAsync(Work work, string source, string target)
@@ -145,7 +152,7 @@ public sealed class TranslationCoordinator
             }
             work.Completion.TrySetResult(translation);
         }
-        catch (OperationCanceledException) when (work.Cancellation.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
             work.Completion.TrySetCanceled(work.Cancellation.Token);
         }
@@ -163,6 +170,12 @@ public sealed class TranslationCoordinator
         }
     }
 
+    private void SignalCancellation(Work? work)
+    {
+        if (work is null) return;
+        _beforeCancellationSignal?.Invoke();
+        work.Cancel();
+    }
     private readonly record struct TranslationKey(string Source, string Target);
 
     private sealed class Work : IDisposable
