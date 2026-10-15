@@ -20,6 +20,6 @@ Ran the same focused command after implementation.
 Result: `Passed! - Failed: 0, Passed: 6, Skipped: 0, Total: 6` (net10.0).
 
 ## Commit and working tree
-Commit: `092031c` (`feat: preserve glossary names through translation`).
+Commit: `1c4813f` (`feat: preserve glossary names through translation`).
 The parent-owned modification to `task-3-report.md` was left unstaged and untouched. Task 4 files and this report were staged/committed explicitly. Final `git status --short` shows only the parent-owned modified `task-3-report.md`; no Task 4 changes remain uncommitted.
 

@@ -21,6 +21,6 @@ Ran the same focused command after implementation.
 Result: `Passed! - Failed: 0, Passed: 8, Skipped: 0, Total: 8`.
 
 ## Commit and working tree
-Commit: `6d88a8d` (`feat: stabilize and deduplicate OCR text`).
+Commit: `e073ee1` (`feat: stabilize and deduplicate OCR text`).
 Working tree status: clean after staging this report.
 
