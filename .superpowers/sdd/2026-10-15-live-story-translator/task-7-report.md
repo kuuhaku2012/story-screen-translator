@@ -26,3 +26,12 @@ Official API references:
 - [Windows.Media.Ocr namespace and package identity requirement](https://learn.microsoft.com/en-us/uwp/api/windows.media.ocr?view=winrt-26100)
 - [OcrEngine.RecognizeAsync](https://learn.microsoft.com/en-us/uwp/api/windows.media.ocr.ocrengine.recognizeasync?view=winrt-26100)
 - [OcrEngine.TryCreateFromLanguage](https://learn.microsoft.com/en-us/uwp/api/windows.media.ocr.ocrengine.trycreatefromlanguage?view=winrt-26100)
+
+## Review follow-up: overflow-safe rectangle validation
+
+- Review finding: `Rectangle.Contains` can rely on 32-bit `Right`/`Bottom` calculations, which may wrap for a positive rectangle with a very large X/ Y coordinate and width/height.
+- RED: the focused `CaptureRegionValidatorTests` command failed to compile because the pure validator did not exist.
+- Fix: added `CaptureRegionValidator.IsWithin`, which rejects nonpositive region/desktop dimensions and compares all left/top/right/bottom extents using checked `long` arithmetic. `WindowsRegionCapture` now fails closed when Win32 virtual-desktop metrics are nonpositive or the selected region is outside the validated bounds.
+- Focused GREEN: `dotnet test tests/StoryTranslator.Core.Tests/StoryTranslator.Core.Tests.csproj --filter FullyQualifiedName~CaptureRegionValidatorTests` passed 13/13 cases. Cases include X+width and Y+height Int32 overflow, ordinary out-of-bounds edges, and nonpositive capture or desktop dimensions. The validator tests use synthetic rectangles and make no desktop API calls.
+- Reverification: `dotnet test StoryTranslator.sln` passed 44/44 tests. `dotnet build StoryTranslator.sln -c Release` succeeded with 0 warnings and 0 errors.
+- Package identity gate remains unchanged. No game client or live screen capture was used.

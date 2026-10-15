@@ -76,19 +76,14 @@ public sealed class WindowsRegionCapture : IRegionFrameSource
 
     private static void ValidateRegion(Rectangle region)
     {
-        if (region.Width <= 0 || region.Height <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(region), "The capture region must have positive width and height.");
-        }
-
         var left = GetSystemMetrics(SmXVirtualScreen);
         var top = GetSystemMetrics(SmYVirtualScreen);
         var width = GetSystemMetrics(SmCxVirtualScreen);
         var height = GetSystemMetrics(SmCyVirtualScreen);
         var virtualDesktop = new Rectangle(left, top, width, height);
-        if (!virtualDesktop.Contains(region))
+        if (!CaptureRegionValidator.IsWithin(region, virtualDesktop))
         {
-            throw new ArgumentOutOfRangeException(nameof(region), "The capture region must be inside the virtual desktop.");
+            throw new ArgumentOutOfRangeException(nameof(region), "The capture region and virtual desktop metrics must be positive and fully within the virtual desktop.");
         }
     }
 
