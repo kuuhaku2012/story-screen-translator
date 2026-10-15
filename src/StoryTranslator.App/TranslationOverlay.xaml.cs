@@ -17,6 +17,7 @@ public partial class TranslationOverlay : Window, ITranslationOverlayVisibility
         _ = TryShowTranslation(translation);
     }
 
+    /// <summary>Returns true when shown immediately or queued; a queued update may be discarded by its guard.</summary>
     public bool TryShowTranslation(string translation, Func<bool>? isStillAllowed = null)
     {
         ArgumentNullException.ThrowIfNull(translation);

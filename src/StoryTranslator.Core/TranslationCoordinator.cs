@@ -7,6 +7,13 @@ public interface ITranslationCache
     void Set(string source, string target, string translation);
 }
 
+/// <summary>Translation submission boundary used by the story pipeline.</summary>
+public interface ITranslationCoordinator
+{
+    Task<string> SubmitAsync(string line, string target = "vi", CancellationToken cancellationToken = default);
+    void CancelPending();
+}
+
 /// <summary>A small bounded in-memory cache that evicts the least recently used entry.</summary>
 public sealed class InMemoryTranslationCache : ITranslationCache
 {
@@ -71,7 +78,7 @@ public sealed class InMemoryTranslationCache : ITranslationCache
 }
 
 /// <summary>Runs at most one translation at a time and favors the newest submitted line.</summary>
-public sealed class TranslationCoordinator
+public sealed class TranslationCoordinator : ITranslationCoordinator
 {
     private readonly object _gate = new();
     private readonly ITextTranslator _translator;

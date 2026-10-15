@@ -4,6 +4,7 @@ namespace StoryTranslator.Core;
 public interface ITranslationOverlayVisibility
 {
     void Show();
+    /// <summary>Returns true when presentation was accepted or queued; evaluates the guard when UI changes are applied.</summary>
     bool TryShowTranslation(string translation, Func<bool> isStillAllowed);
     void Hide();
 }
@@ -39,13 +40,16 @@ public sealed class TranslationPresentationGate
         }
     }
 
-    /// <summary>Shows translated text only while active; implementations must apply text and visibility atomically.</summary>
-    public bool TryShowTranslation(string translation)
+    /// <summary>Accepts or queues translated text while active; queued UI work must recheck both guards when applied.</summary>
+    public bool TryShowTranslation(string translation) => TryShowTranslation(translation, () => true);
+
+    public bool TryShowTranslation(string translation, Func<bool> isCurrent)
     {
         ArgumentNullException.ThrowIfNull(translation);
+        ArgumentNullException.ThrowIfNull(isCurrent);
         lock (_gate)
         {
-            return _isActive && _overlay.TryShowTranslation(translation, () => IsActive);
+            return _isActive && isCurrent() && _overlay.TryShowTranslation(translation, () => IsActive && isCurrent());
         }
     }
 

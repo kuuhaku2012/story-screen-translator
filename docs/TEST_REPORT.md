@@ -10,9 +10,12 @@ Các bài kiểm thử chạy bằng frame tổng hợp, OCR giả xác định,
 
 - `OfflinePipelineTests`: 3/3 đạt.
 - `StoryTranslationPipelineTests`: 2/2 đạt; kịch bản `A,A,B,B,A,A` chỉ gọi translator cho hai câu khác nhau và câu A trở lại được lấy từ cache.
+- `StaleTranslationPresentationTests`: 2/2 đạt với coordinator giả cố ý trả kết quả muộn; A chậm không ghi đè B nhanh, và A hoàn tất sau OFF/ON không xuất hiện trong phiên mới.
 - Token glossary ổn định giữa hai lần bảo vệ cùng một câu; tên vẫn được khôi phục đúng.
 - Pipeline Core sản phẩm dùng chung trong integration test, tuần tự hóa cập nhật filter mà không giữ khóa trong lúc dịch; coordinator vẫn có thể hủy dòng cũ khi dòng mới tới.
 - Cổng overlay kiểm tra trạng thái OFF khi nhận và khi dispatcher thực hiện cập nhật; test OFF đồng thời với show để bảo đảm OFF/hide hoàn tất sau lần show đang chạy.
+- Dòng trả về `true` từ lời gọi hiển thị nghĩa là overlay nhận yêu cầu hoặc đã xếp nó lên dispatcher; guard có thể loại bỏ yêu cầu cũ trước khi UI cập nhật. Đây không phải xác nhận rằng pixel đã được vẽ lên màn hình.
+- Mỗi câu ổn định mang generation của dòng hiện tại và session Story Mode. Pipeline kiểm tra generation trước khi gửi dịch, khi nhận kết quả và trong callback dispatcher; OFF/ON làm vô hiệu hóa mọi kết quả đang bay của session trước.
 - Luồng frame giả → OCR giả → đợi câu ổn định → bảo vệ tên riêng → dịch giả → khôi phục tên → overlay gate được kiểm tra.
 - Tên `Rover` và `Academy` được giữ nguyên trong kết quả giả.
 - Câu lặp không làm gọi translator lần hai; cache trả kết quả đã có.
@@ -31,7 +34,7 @@ dotnet test StoryTranslator.sln
 dotnet build StoryTranslator.sln -c Release
 ```
 
-- `dotnet test StoryTranslator.sln`: PASS, 58 passed, 0 failed, 0 skipped.
+- `dotnet test StoryTranslator.sln`: PASS, 62 passed, 0 failed, 0 skipped.
 - `dotnet build StoryTranslator.sln -c Release`: PASS, 0 warning, 0 error.
 
 ## Chưa đo / chưa xác minh
