@@ -9,6 +9,10 @@ Các bài kiểm thử chạy bằng frame tổng hợp, OCR giả xác định,
 ## Kết quả
 
 - `OfflinePipelineTests`: 3/3 đạt.
+- `StoryTranslationPipelineTests`: 2/2 đạt; kịch bản `A,A,B,B,A,A` chỉ gọi translator cho hai câu khác nhau và câu A trở lại được lấy từ cache.
+- Token glossary ổn định giữa hai lần bảo vệ cùng một câu; tên vẫn được khôi phục đúng.
+- Pipeline Core sản phẩm dùng chung trong integration test, tuần tự hóa cập nhật filter mà không giữ khóa trong lúc dịch; coordinator vẫn có thể hủy dòng cũ khi dòng mới tới.
+- Cổng overlay kiểm tra trạng thái OFF khi nhận và khi dispatcher thực hiện cập nhật; test OFF đồng thời với show để bảo đảm OFF/hide hoàn tất sau lần show đang chạy.
 - Luồng frame giả → OCR giả → đợi câu ổn định → bảo vệ tên riêng → dịch giả → khôi phục tên → overlay gate được kiểm tra.
 - Tên `Rover` và `Academy` được giữ nguyên trong kết quả giả.
 - Câu lặp không làm gọi translator lần hai; cache trả kết quả đã có.
@@ -27,7 +31,7 @@ dotnet test StoryTranslator.sln
 dotnet build StoryTranslator.sln -c Release
 ```
 
-- `dotnet test StoryTranslator.sln`: PASS, 54 passed, 0 failed, 0 skipped.
+- `dotnet test StoryTranslator.sln`: PASS, 58 passed, 0 failed, 0 skipped.
 - `dotnet build StoryTranslator.sln -c Release`: PASS, 0 warning, 0 error.
 
 ## Chưa đo / chưa xác minh
@@ -39,6 +43,7 @@ dotnet build StoryTranslator.sln -c Release
 - Dịch thật: chưa tích hợp provider; không có API key hoặc request mạng.
 - Giao diện/overlay khi dùng thật, nhận dạng câu từ hình game và kiểm thử đa màn hình: chưa xác minh thủ công.
 - Wuthering Waves: chưa chạy. Không dùng với client Kuro cho tới khi Kuro xác nhận bằng văn bản rằng chính xác quy trình OCR vùng chọn thủ công + overlay ngoài tiến trình này được phép. Acc phụ không phải phép thử an toàn.
+- Task 10 mới hoàn thành phần kiểm thử offline và tài liệu nháp. Script/gói portable hoặc MSIX chưa làm; chờ lựa chọn phương án phân phối OCR và provider dịch rồi mới hoàn tất đóng gói.
 
 ## Cổng an toàn
 

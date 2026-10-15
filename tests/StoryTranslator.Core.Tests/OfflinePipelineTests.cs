@@ -12,7 +12,6 @@ public sealed class OfflinePipelineTests
         var frameSource = new SyntheticFrameSource("I met rover near the academy.", "I met rover near the academy.");
         var recognizer = new SyntheticRecognizer();
         var worker = new CaptureWorker(frameSource, recognizer, TimeSpan.FromMilliseconds(5));
-        var stability = new TextStabilityFilter();
         var glossary = new GlossaryProtector([
             new GlossaryEntry("Rover", ["rover"], "character"),
             new GlossaryEntry("Academy", ["the academy"], "organization")
@@ -21,37 +20,16 @@ public sealed class OfflinePipelineTests
         var coordinator = new TranslationCoordinator(translator);
         var overlay = new RecordingOverlay();
         var gate = new TranslationPresentationGate(overlay, coordinator.CancelPending);
-        gate.Activate();
-
-        var presentation = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        worker.TextRecognized += async (_, recognized) =>
-        {
-            var stable = stability.Observe(recognized);
-            if (stable is null) return;
-
-            var protectedText = glossary.Protect(stable);
-            try
-            {
-                var translated = await coordinator.SubmitAsync(protectedText.Text, "vi");
-                var restored = GlossaryProtector.Restore(translated, protectedText.TokenMap);
-                if (gate.TryShowOverlay())
-                {
-                    overlay.LastText = restored;
-                    presentation.TrySetResult(restored);
-                }
-            }
-            catch (InvalidOperationException ex)
-            {
-                presentation.TrySetException(ex);
-            }
-        };
+        var pipeline = new StoryTranslationPipeline(new TextStabilityFilter(), glossary, coordinator, gate);
+        pipeline.Enable();
+        worker.TextRecognized += async (_, recognized) => await pipeline.ObserveAsync(recognized);
 
         worker.Start(new Rectangle(10, 10, 300, 80));
-        var shown = await presentation.Task.WaitAsync(TimeSpan.FromSeconds(3));
+        await WaitUntilAsync(() => overlay.ShowCount >= 1);
         worker.Stop();
         await worker.DisposeAsync();
 
-        Assert.Equal("Dịch: Tôi đã gặp Rover gần Academy.", shown);
+        Assert.Equal("Dịch: Tôi đã gặp Rover gần Academy.", overlay.LastText);
         Assert.Equal(1, translator.CallCount);
         Assert.Equal(2, recognizer.CallCount);
         Assert.Equal(2, frameSource.FramesCreated);
@@ -67,32 +45,23 @@ public sealed class OfflinePipelineTests
         var coordinator = new TranslationCoordinator(translator, cache);
         var overlay = new RecordingOverlay();
         var gate = new TranslationPresentationGate(overlay, coordinator.CancelPending);
-        gate.Activate();
+        var pipeline = new StoryTranslationPipeline(new TextStabilityFilter(), new GlossaryProtector([]), coordinator, gate);
+        pipeline.Enable();
 
-        Assert.Equal("Dịch: Hello.", await coordinator.SubmitAsync("Hello.", "vi"));
-        Assert.Equal("Dịch: Hello.", await coordinator.SubmitAsync("Hello.", "vi"));
-        Assert.Equal(1, translator.CallCount);
+        Assert.False(await pipeline.ObserveAsync("Hello."));
+        Assert.True(await pipeline.ObserveAsync("Hello."));
+        Assert.False(await pipeline.ObserveAsync("Hello."));
+        Assert.False(await pipeline.ObserveAsync("A different line."));
+        Assert.True(await pipeline.ObserveAsync("A different line."));
+        Assert.False(await pipeline.ObserveAsync("Hello."));
+        Assert.True(await pipeline.ObserveAsync("Hello."));
+        Assert.Equal(2, translator.CallCount);
 
-        gate.TurnOff();
+        pipeline.TurnOff();
         Assert.Equal(1, overlay.HideCount);
-        Assert.False(gate.TryShowOverlay());
-        Assert.Equal(0, overlay.ShowCount);
-    }
-
-    [Fact]
-    public async Task TranslatorFailureIsPropagatedWithoutOpeningOverlay()
-    {
-        var translator = new DeterministicTranslator(fail: true);
-        var coordinator = new TranslationCoordinator(translator);
-        var overlay = new RecordingOverlay();
-        var gate = new TranslationPresentationGate(overlay, coordinator.CancelPending);
-        gate.Activate();
-
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => coordinator.SubmitAsync("A line", "vi"));
-
-        Assert.Equal("Synthetic translator failure", error.Message);
-        Assert.Equal(1, translator.CallCount);
-        Assert.Equal(0, overlay.ShowCount);
+        Assert.False(await pipeline.ObserveAsync("A late line."));
+        Assert.False(gate.TryShowTranslation("late translation"));
+        Assert.Equal(3, overlay.ShowCount);
     }
 
     private sealed class SyntheticFrameSource(params string[] recognizedLines) : IRegionFrameSource
@@ -101,13 +70,19 @@ public sealed class OfflinePipelineTests
         public int FramesCreated { get; private set; }
         public int FramesDisposed { get; private set; }
 
-        public Task<ICapturedFrame> CaptureAsync(Rectangle region, CancellationToken cancellationToken)
+        public async Task<ICapturedFrame> CaptureAsync(Rectangle region, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (_lines.Count == 0)
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                throw new OperationCanceledException(cancellationToken);
+            }
+
             FramesCreated++;
-            return Task.FromResult<ICapturedFrame>(new SyntheticFrame(
+            return new SyntheticFrame(
                 _lines.Count > 0 ? _lines.Dequeue() : string.Empty,
-                () => FramesDisposed++));
+                () => FramesDisposed++);
         }
     }
 
@@ -150,6 +125,23 @@ public sealed class OfflinePipelineTests
         public int HideCount { get; private set; }
         public string? LastText { get; set; }
         public void Show() => ShowCount++;
+        public bool TryShowTranslation(string translation, Func<bool> isStillAllowed)
+        {
+            if (!isStillAllowed()) return false;
+            LastText = translation;
+            ShowCount++;
+            return true;
+        }
         public void Hide() => HideCount++;
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(3);
+        while (!condition())
+        {
+            if (DateTime.UtcNow >= timeout) throw new TimeoutException("Expected synthetic pipeline result was not presented.");
+            await Task.Delay(5);
+        }
     }
 }

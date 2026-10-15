@@ -111,10 +111,15 @@ public sealed class GlossaryProtector
 
     private static string CreateToken(string source, int ordinal)
     {
-        string token;
+        var token = $"⟬STG_{ordinal:D4}⟭";
+        var collision = 0;
         do
         {
-            token = $"⟬STG_{Guid.NewGuid():N}_{ordinal:D4}⟭";
+            if (collision > 0)
+            {
+                token = $"⟬STG_{ordinal:D4}_{collision:D4}⟭";
+            }
+            collision++;
         }
         while (source.Contains(token, StringComparison.Ordinal));
 

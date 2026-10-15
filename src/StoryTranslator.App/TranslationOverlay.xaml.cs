@@ -14,15 +14,29 @@ public partial class TranslationOverlay : Window, ITranslationOverlayVisibility
 
     public void ShowTranslation(string translation)
     {
+        _ = TryShowTranslation(translation);
+    }
+
+    public bool TryShowTranslation(string translation, Func<bool>? isStillAllowed = null)
+    {
         ArgumentNullException.ThrowIfNull(translation);
+        if (!Dispatcher.CheckAccess())
+        {
+            _ = Dispatcher.BeginInvoke(() => TryShowTranslation(translation, isStillAllowed));
+            return true;
+        }
+
+        if (isStillAllowed is not null && !isStillAllowed()) return false;
         TranslationText.Text = translation;
         if (!IsVisible) Show();
         Activate();
+        return true;
     }
 
     public void HideOverlay() => Hide();
 
     void ITranslationOverlayVisibility.Show() => Show();
+    bool ITranslationOverlayVisibility.TryShowTranslation(string translation, Func<bool> isStillAllowed) => TryShowTranslation(translation, isStillAllowed);
     void ITranslationOverlayVisibility.Hide() => Hide();
 
     private void Hide_Click(object sender, RoutedEventArgs e) => HideOverlay();

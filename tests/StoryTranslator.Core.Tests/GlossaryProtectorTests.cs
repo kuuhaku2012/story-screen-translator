@@ -5,6 +5,22 @@ namespace StoryTranslator.Core.Tests;
 public sealed class GlossaryProtectorTests
 {
     [Fact]
+    public void Protect_UsesDeterministicOpaqueTokensForRepeatedIdenticalSource()
+    {
+        var protector = new GlossaryProtector([
+            new GlossaryEntry("Rover", ["rover"], "character")
+        ]);
+
+        var first = protector.Protect("Hello rover.");
+        var second = protector.Protect("Hello rover.");
+
+        Assert.Equal(first.Text, second.Text);
+        Assert.Equal(first.TokenMap, second.TokenMap);
+        Assert.DoesNotContain("Rover", first.Text, StringComparison.Ordinal);
+        Assert.Equal("Hello Rover.", GlossaryProtector.Restore(first.Text, first.TokenMap));
+    }
+
+    [Fact]
     public void ProtectAndRestore_ReturnsExactCanonicalName()
     {
         var protector = new GlossaryProtector([
