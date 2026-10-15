@@ -42,10 +42,11 @@
 - Create: tests/StoryTranslator.Core.Tests/StoryModeControllerTests.cs
 
 **Interfaces:**
-- IScreenCapture.Start(Rectangle region) starts capture for one selected rectangle.
+- IScreenCapture.Start(System.Drawing.Rectangle region) starts capture for one selected rectangle.
 - IScreenCapture.Stop() stops frame production.
-- StoryModeController.Enable(Rectangle region) starts capture once.
-- StoryModeController.Disable() stops capture and reports OFF.
+- StoryModeController.IsEnabled is a read-only bool, false at construction and true only after Start succeeds.
+- StoryModeController.Enable(System.Drawing.Rectangle region) starts capture once; calling it again while enabled is a no-op.
+- StoryModeController.Disable() stops capture when enabled and reports OFF; disabling while already OFF is a no-op.
 
 - [ ] Write tests proving a fresh controller is OFF, enabling starts once, repeated enable does not start another capture, and disabling stops capture. Use a recording fake so tests never capture a real desktop.
 - [ ] Run focused tests. Expected: FAIL because controller/interface are absent.
@@ -162,5 +163,6 @@
 - [ ] Measure CPU/RAM with mode OFF and ON, OCR-to-overlay latency, and translation request count. Report measured values only.
 - [ ] Package a portable Windows artifact and removal guide; exclude keys and account data.
 - [ ] Keep live game use gated on Kuro’s written confirmation. Offline success and alt-account use do not establish anti-cheat safety.
+
 
 
