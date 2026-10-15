@@ -1,0 +1,9 @@
+.tools/
+**/bin/
+**/obj/
+.vs/
+.superpowers/sdd/
+TestResults/
+*.user
+*.suo
+*.secrets.json
