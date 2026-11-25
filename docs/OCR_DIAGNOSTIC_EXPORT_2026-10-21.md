@@ -1,0 +1,11 @@
+# Opt-in OCR diagnostic export
+
+Added an explicit UI button: save selected-region image and OCR boxes locally, without API. Start with `Thu-chan-doan-OCR.cmd` (separate self-contained diagnostic package). Select the manga region; enable comic mode if that is the configuration being reproduced; press the diagnostic button instead of enabling network translation. No key is needed.
+
+Action stops the current translation session and awaits its capture worker, hides the control window/overlay, captures only the selected desktop rectangle once, runs actual WindowsOcrEngine, then saves PNG/JSON/HTML under `artifacts/ocr-diagnostics/<UTC timestamp>-<GUID>`. Restores UI and opens local preview. Closing the app cancels the diagnostic action. The image is intentionally retained because the button explicitly requests saving it; no background diagnostic capture occurs. It may contain visible selected-region content, so select only the intended manga area. Nothing is uploaded.
+
+`source.png` is the exact captured input. `ocr.json` contains source-relative physical-pixel boxes, capture origin/size, comic mode and OCR milliseconds. `preview.html` compares red OCR source boxes against cyan panel-layout predictions. Predictions use current SpatialPanelLayout; they are not detected bubble polygons, translated output or a measurement of live WPF DPI placement. All OCR text is HTML-escaped. API credentials are not arguments to the exporter and no key is written.
+
+Evidence: new exporter test initially failed because the API was absent; after implementation full124 tests passed. Test checks JSON coordinate fields and HTML escaping, using a supplied synthetic PNG; it does not capture the user's screen. Self-contained diagnostic package built:71,464,616 bytes, unsigned, separate folder to preserve prior package. Source includes the earlier glossary validation integration. Actual one-click capture on the user's manga is pending; no claim of fixed OCR or improved translation.
+
+This is a Task1 diagnostic capability supporting the real-image/root-cause investigation. Task3 OCR replacement remains gated and unpassed. Next after the user explicitly exports a sample: inspect saved PNG and actual Windows OCR geometry, replay alternative recognizers on that same image, and compare source versus display placement independently. No live game/account safety claim.

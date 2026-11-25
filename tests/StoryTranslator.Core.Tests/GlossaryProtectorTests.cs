@@ -4,6 +4,42 @@ namespace StoryTranslator.Core.Tests;
 
 public sealed class GlossaryProtectorTests
 {
+    [Theory]
+    [InlineData("Tên đã bị bỏ mất.")]
+    [InlineData("⟬STG_0001⟭ và ⟬STG_0001⟭")]
+    [InlineData("⟬STG_0001⟭ và ⟬STG_9999⟭")]
+    [InlineData("⟬stg_0001⟭")]
+    public void ValidatedRestoreRejectsMissingDuplicatedExtraOrChangedTokens(string translated)
+    {
+        var source = new GlossaryProtector([new GlossaryEntry("Nazuna", [], "character")]).Protect("Nazuna arrived.");
+        Assert.Throws<InvalidOperationException>(() => GlossaryProtector.RestoreValidated(translated, source));
+    }
+
+    [Fact]
+    public void ValidatedRestorePreservesOrganizationAndPlaceNamesExactly()
+    {
+        var source = new GlossaryProtector([
+            new GlossaryEntry("Northern Alliance", [], "organization"),
+            new GlossaryEntry("Glass Harbor", [], "place")
+        ]).Protect("Northern Alliance controls Glass Harbor.");
+        Assert.Equal("Northern Alliance kiểm soát Glass Harbor.", GlossaryProtector.RestoreValidated(
+            "⟬STG_0001⟭ kiểm soát ⟬STG_0002⟭.", source));
+    }
+
+    [Fact]
+    public void ValidatedRestoreKeepsLiteralSourceTokenAndRepeatedNames()
+    {
+        var source = new GlossaryProtector([new GlossaryEntry("Nazuna", [], "character")])
+            .Protect("⟬STG_0001⟭ Nazuna meets Nazuna.");
+        Assert.Equal("⟬STG_0001⟭ Nazuna meets Nazuna.", GlossaryProtector.RestoreValidated(source.Text, source));
+    }
+
+    [Fact]
+    public void ValidatedRestoreRejectsContextTokenWhenSourceHasNoNames()
+    {
+        var source = new GlossaryProtector([]).Protect("I know.");
+        Assert.Throws<InvalidOperationException>(() => GlossaryProtector.RestoreValidated("Tôi biết. ⟬STG_0002⟭", source));
+    }
     [Fact]
     public void Protect_UsesDeterministicOpaqueTokensForRepeatedIdenticalSource()
     {

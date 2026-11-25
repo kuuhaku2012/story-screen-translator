@@ -1,0 +1,9 @@
+# Cutscene dialogue priority follow-up — 2026-10-23
+
+User reported that at 3:17 of `https://youtu.be/AvS_afduMds` only the original English line was visible until the scene changed. The supplied photo shows the source video's native subtitle styling, without the app's dark translation panel. This supports a late or missed translation, not an English echo from Groq.
+
+A paused view of the user-specified video at 3:18 showed a top-left lyric, “And all this worldly splendor fades like a dream”, at the same time as the lower dialogue, “Back then, even in death, none of you regretted following me”. The adaptive OCR implementation previously skipped 2× fallback if native OCR found *any* selected text. A native pass that reads only the lyric could therefore prevent recovery of the lower dialogue. The selector also sent both lyric and dialogue when both were present.
+
+Change: in cutscene mode, native OCR skips the enlarged pass only if it sees a lower subtitle. If it sees only top text, run enlarged OCR to look for lower dialogue; prefer the enlarged result if it finds lower dialogue. When both top and bottom text exist, select only lower dialogue for translation. Top-only text remains eligible. This can add OCR cost on top-only frames; it avoids a simultaneous top lyric consuming the dialogue translation batch. This is a class-level explanation supported by the code and video, not proof of the exact live OCR sequence at 3:17.
+
+Regression tests reproduced both pre-fix failures. After the change, targeted tests 7/7 and full suite 140/140 passed. Self-contained MSIX package built at `artifacts/cutscene-dialogue-priority-trial-20261023/StoryTranslator-1.0.0.0-x64-self-contained.msix` (71,472,292 bytes). The temporary trial launched from its own layout and executable path was checked. Awaiting user replay at 3:17 and 2:13; translation service latency still limits short captions.

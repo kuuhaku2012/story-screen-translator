@@ -101,7 +101,7 @@ public sealed class StoryTranslationPipeline
         }
 
         var translated = await translationTask.ConfigureAwait(false);
-        var restored = GlossaryProtector.Restore(translated, protectedText.TokenMap);
+        var restored = GlossaryProtector.RestoreValidated(translated, protectedText);
         return _presentationGate.TryShowTranslation(restored, () => IsCurrent(ticket));
     }
 

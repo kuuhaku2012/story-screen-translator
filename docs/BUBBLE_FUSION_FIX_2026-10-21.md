@@ -1,0 +1,13 @@
+# Fusion fixes and remaining limits
+
+Changed experimental `bubble_text_regions.py`, not the application:
+
+1. Group all detected lines before assigning a bubble. The contour boundary no longer divides continuous text across buckets. Synthetic boundary-crossing case failed before and passes after; actual REALLY WORTH IT caption visually joins.
+2. A text-supported bright component is no longer blindly used as a full rectangle. Require approximate text/bright-region centering and cap extension by estimated line height. Otherwise retain text bounds as `text-in-bright-region`. This removes the oversized page172 wall/background rectangle and reduces unused lower background around another caption. Returned regions always include complete detected text bounds; this still cannot recover undetected words or prove balloon boundaries.
+3. Merge strongly overlapping aligned cluster fragments (>=40% smaller rectangle overlap, >=65% narrow-width overlap, vertical separation or near containment). Weak overlap remains separate to avoid joining unrelated content. A first synthetic fragment expectation failed because overlap was below the intended threshold; tests now explicitly distinguish strong and weak overlap, rather than loosening criteria to force every fragment together.
+
+Six synthetic tests pass, including unsupported art, independent columns in connected shape, floating text, background growth, boundary-crossing caption, strong versus weak overlap. Full five-image detector/fusion replay completed after final change: actual-page23 19regions, page172 18 (previous20), manga001/002 11 each, manga005 17. Region count alone is not an accuracy metric. Latest last-pass detector/fusion~320–350ms; excludes recognition, translation and cached contour proposal generation.
+
+Visual inspection: actual-page23 keeps separate WANNA/HEY and OH/WHAT clusters, retains handwriting, no previous face/seat candidates. Page172 oversized bright-background box is gone, REALLY WORTH IT is joined, and handwritten I've seen/them/around/a lot is now one region. A small overlapping background-text detection near the lower caption, other unwanted background text and page number remain. Do not claim all caption errors are fixed or general correctness on unseen pages. Further heuristic weakening risks merging distinct dialogue and is not accepted without independent labels.
+
+`artifacts/bubble-text-fusion/preview.html` and assessment regenerated from final code. No API call, main app/package/default change. Next integration gate still requires independent region labels and a demonstrably better detector/recognizer strategy for unresolved fragments; this prototype remains a diagnostic candidate, not a ready manga translator.

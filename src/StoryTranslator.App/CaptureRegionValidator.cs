@@ -5,6 +5,13 @@ namespace StoryTranslator.App;
 /// <summary>Validates capture rectangles without using Rectangle.Right/Bottom, whose int arithmetic can wrap.</summary>
 public static class CaptureRegionValidator
 {
+    public static bool Overlaps(Rectangle first, Rectangle second) =>
+        first.Width > 0 && first.Height > 0 && second.Width > 0 && second.Height > 0 &&
+        (long)first.Left < (long)second.Left + second.Width &&
+        (long)second.Left < (long)first.Left + first.Width &&
+        (long)first.Top < (long)second.Top + second.Height &&
+        (long)second.Top < (long)first.Top + first.Height;
+
     public static bool IsWithin(Rectangle region, Rectangle virtualDesktop)
     {
         if (region.Width <= 0 || region.Height <= 0 || virtualDesktop.Width <= 0 || virtualDesktop.Height <= 0)

@@ -1,0 +1,30 @@
+# Acceptance matrix — 2026-10-22
+| Gate | Current evidence | Status |
+|---|---|---|
+| Development translation corpus | 60 unique IDs: 42 prior user-fixture transcripts, 18 synthetic cases | Prepared; not held out |
+| Held-out translation corpus | Needs unseen independently selected/chosen material | Not established |
+| Translation semantic quality | Existing Qwen and GPT-OSS trials contain material clean-text errors | Failed |
+| Controlled casing comparison | Both six-ID responses valid; lowercase improves complaints/indifference but still fails romantic idiom; 1273ms uppercase versus 1897ms lowercase | Promising candidate, not accepted; single fixed-order pair |
+| Expanded casing comparison | All16 calls/120 outputs valid; single-reviewer grades41/60 original vs49/60 normalized usable;12 improvements,3 regressions | Failed95% gate; development only, not blinded |
+| Real manga OCR | App Windows OCR remains weak; Rapid page23 11/17 normalized exact on approximate ROIs | Not accepted |
+| Geometry | Cached Rapid lines grouped better; live Windows path still unacceptable on new page | Not accepted |
+| Overlay | Expansion/clipping still unresolved | Not accepted |
+| End-to-end latency | No continuous session measurement; helper API time excludes waits | Not established |
+| Privacy | New study sends saved text only; manual key RAM-only; no image permission expansion | Maintained in helper |
+| Game/account safety | No live game testing or guarantee | No safety claim |
+| Production glossary structural validation | Validated restore in both pipelines; atomic spatial batch;123 Core tests pass | Source integrated; package not rebuilt; semantics still unaccepted |
+| Manga resolution gate | Three PP-OCRv6 configurations over five development pages; combined geometry/transcript proxy32/55, 28/55, 30/55 exact; warm whole-page~0.84–2.29s | Not accepted; loose reference IoU association affects scores, no backend default change |
+| Selective OCR gate | At most3 confidence-selected crops/page; center-associated text35/55→39/55 exact, CER3.57→2.70%;5 improved regions,0 annotated regressions; adds170–458ms | Still fails90% exact; page23 unchanged, geometry2 splits/1 cross-region; no product integration |
+| Bubble/text fusion | Detector-only evidence filters unsupported bright regions, splits connected clusters, retains floating text;5-page local run~334–387ms last pass; actual-page23 visually improved | Not accepted: page172 large background region and caption splits remain; no recognition accuracy/live claim |
+| Fused-region recognition | Five-page55-region comparison35→39 exact, CER4.05→3.25%,15 improved/10 regressed; detector+crop recognition1.10–2.32s | Not accepted; repeated crop detection adds latency/noise; no live translation or product integration |
+| Direct-line recognition | Single detector + batched quad recognition: v6 35/55,CER4.05%,~0.92–1.75s; English v5 25/55,CER10.71% | Faster architecture candidate, quality still failed; English variant rejected; no app change |
+| PP-OCRv6 medium recognition | Same detector/crops:42/55 vs v6 35/55, CER2.86% vs4.05%; identical CPU/DirectML transcripts on 55 regions; RTX3050 DirectML medians0.39–0.72s/page,6.51–8.22x faster than CPU medium | Promising OCR speed, but still garbles/misses13/55 approximate regions; same errors on GPU; not held out and no semantic translation/overlay latency; no app integration |
+| Supplementary DML samples | Subtitle ROIs exact 3/3 + blank 0/1; warmed OCR ~0.16–0.24s/ROI; manga scroll/page OCR returns fragmented line boxes in ~0.20–0.70s | Regression evidence only; previously used images, no translation/overlay/in-game latency |
+| Full-frame subtitle OCR | Three saved YouTube captions exact 3/3; warmed OCR 0.29–0.32 s/frame; empty-caption frame produces15 UI/title lines | Not accepted: prior screenshots, full-screen noise, bilingual duplicate text; no app overlay/latency measurement |
+| Selected video-player ROI | Three saved English captions exact 3/3; warmed OCR 0.12–0.14s/frame; four blank frames yield 8 non-dialogue boxes | Not accepted: previously used frames; bilingual caption/control/watermark noise; no translation/overlay/live timing |
+| User-added held-out OCR (2026-10-22) | 7 manga pages: 35–50 line boxes/page, median warmed 0.43s/page; labelled pages 27: 5/6 exact, page 24: 7/7, sample 001909: 8/8; video 3/3 captions full-frame and 3/3 bottom-band | Supplementary only: 1/2 full-frame blank false positives, reduced to 0/2 with the post-hoc box-area/confidence filter or fixed band; 4 manga pages still unlabelled; no overlay/live timing or game test |
+| New-page line grouping replay | Existing line grouping on two manually labelled pages yields 8/8 and 9/9 text islands matched by group center, with 0 split/missed/unassigned groups after two combined transcript labels were separated into distinct visible text islands | Development only: center association is not bubble-boundary IoU; no unseen-page generalization or app overlay validation |
+
+Development rubric: 0=wrong core meaning, 1=needs material correction, 2=accurate but stiff, 3=accurate and natural. Record critical meaning reversals, omissions and name errors separately in `data/evaluation/translation-review.tsv`. Blank scores mean unreviewed, not zero or pass. Do not supply review criteria/gold Vietnamese to model prompts. Synthetic and already-inspected cases are development data, never a blind acceptance set.
+
+Next checkpoint: add new cutscene holdouts with alternate subtitle positions, bilingual captions, and blank frames during scene changes; independently label more manga pages while keeping the four unlabelled pages untouched; test the video ROI against these cases; then measure OCR-to-overlay timing in the app outside the game. Keep OCR local and do not send requests to Groq until separately authorized. Do not integrate PP-OCRv6 medium into the main app until OCR quality, memory, and timing gates are met. This does not complete Task1 (end-to-end tracing and broader unseen dataset still needed) or Task2 (60-case scoring/provider selection still pending). No main application change in this checkpoint.

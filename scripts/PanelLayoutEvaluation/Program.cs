@@ -1,0 +1,24 @@
+using System.Drawing;
+using System.Globalization;
+using System.Text.Json;
+using StoryTranslator.Core;
+var source=Path.GetFullPath(args[0]);
+using var doc=JsonDocument.Parse(File.ReadAllText(Path.Combine(source,"ocr.json")));
+var capture=doc.RootElement.GetProperty("CaptureRegion");
+var w=capture.GetProperty("Width").GetSingle();var h=capture.GetProperty("Height").GetSingle();
+RectangleF Read(JsonElement b)=>new(b.GetProperty("X").GetSingle(),b.GetProperty("Y").GetSingle(),b.GetProperty("Width").GetSingle(),b.GetProperty("Height").GetSingle());
+var raw=doc.RootElement.GetProperty("Blocks").EnumerateArray().ToArray();
+var blocks=raw.Select(b=>new TranslatedScreenBlock(b.GetProperty("Text").GetString()!,Read(b.GetProperty("SourceBounds")),b.GetProperty("LineHeight").GetSingle())).ToArray();
+var old=raw.Select(b=>Read(b.GetProperty("DisplayBounds"))).ToArray();
+var panels=SpatialPanelLayout.Arrange(blocks,new SizeF(w,h));
+var output=Path.Combine(source,"panel-replay");Directory.CreateDirectory(output);
+var img="data:image/png;base64,"+Convert.ToBase64String(File.ReadAllBytes(Path.Combine(source,"source.png")));
+string F(float n)=>n.ToString("0.##",CultureInfo.InvariantCulture);
+string Layer(IEnumerable<RectangleF> boxes)=>$"<svg viewBox='0 0 {F(w)} {F(h)}'><image href='{img}' width='{F(w)}' height='{F(h)}'/>"+string.Concat(boxes.Select((b,i)=>$"<rect x='{F(b.X)}' y='{F(b.Y)}' width='{F(b.Width)}' height='{F(b.Height)}' fill='#101820' fill-opacity='.4' stroke='cyan'/><text x='{F(b.X)}' y='{F(b.Y+12)}' fill='red' font-size='12'>{i+1}</text>"))+"</svg>";
+var html="<meta charset='utf-8'><title>Panel layout comparison</title><style>body{font:16px Segoe UI;background:#222;color:#eee}.row{display:flex;gap:20px}.col{width:48%}svg{width:100%}</style><h1>Cùng box OCR: khung thẻ cũ / mới</h1><p>Chỉ phát lại hình học Core, không dịch và không đo WPF/DPI. Box OCR sai giữ nguyên.</p><div class='row'><div class='col'><h2>Cũ</h2>"+Layer(old)+"</div><div class='col'><h2>Mới</h2>"+Layer(panels)+"</div></div>";
+File.WriteAllText(Path.Combine(output,"comparison.html"),html);
+float Area(RectangleF b)=>b.Width*b.Height;
+var report=new{SourceBoxes=blocks.Length,OldTotalArea=old.Sum(Area),NewTotalArea=panels.Sum(Area),
+ Boxes=panels.Select((p,i)=>new{Id=i+1,X=p.X,Y=p.Y,Width=p.Width,Height=p.Height})};
+File.WriteAllText(Path.Combine(output,"assessment.json"),JsonSerializer.Serialize(report,new JsonSerializerOptions{WriteIndented=true}));
+Console.WriteLine($"PASS: {blocks.Length} boxes replayed; total card area {old.Sum(Area):0.0} -> {panels.Sum(Area):0.0} pixels squared. Not an OCR/translation accuracy result.");

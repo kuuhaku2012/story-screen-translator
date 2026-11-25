@@ -1,23 +1,9 @@
 <Window x:Class="StoryTranslator.App.TranslationOverlay"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Bản dịch" Width="520" Height="150" MinWidth="300" MinHeight="90"
-        WindowStyle="None" ResizeMode="CanResizeWithGrip" ShowInTaskbar="False"
-        Topmost="True" AllowsTransparency="True" Background="Transparent"
-        WindowStartupLocation="Manual" Left="40" Top="40">
-    <Border Background="#E6222630" BorderBrush="#8853D8FB" BorderThickness="1" CornerRadius="10" Padding="14">
-        <Grid>
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-            <DockPanel LastChildFill="False">
-                <TextBlock Text="Bản dịch" Foreground="#FFB7C1D1" FontSize="12" VerticalAlignment="Center" />
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button Content="Ẩn" Padding="8,3" Margin="4,0" Click="Hide_Click" />
-                    <Button Content="×" Padding="8,3" Click="Close_Click" ToolTip="Đóng overlay" />
-                </StackPanel>
-            </DockPanel>
-            <TextBlock x:Name="TranslationText" Grid.Row="1" Margin="0,12,0,0"
-                       Foreground="White" FontSize="18" TextWrapping="Wrap" VerticalAlignment="Center"
-                       Text="Chưa có bản dịch" />
-        </Grid>
-    </Border>
+        Title="Bản dịch tại các vùng chữ" Width="400" Height="140" MinWidth="1" MinHeight="1"
+        WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False"
+        Topmost="True" ShowActivated="False" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="Manual" SizeChanged="Overlay_SizeChanged">
+    <Canvas x:Name="BlockCanvas" Background="Transparent" ClipToBounds="True" />
 </Window>

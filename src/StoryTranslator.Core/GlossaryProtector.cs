@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace StoryTranslator.Core;
 
@@ -83,6 +84,21 @@ public sealed class GlossaryProtector
         }
 
         return translated;
+    }
+
+    /// <summary>Reject missing, duplicated or foreign reserved tokens before restoring known names.</summary>
+    public static string RestoreValidated(string translated, ProtectedText source)
+    {
+        ArgumentNullException.ThrowIfNull(translated);
+        ArgumentNullException.ThrowIfNull(source);
+        static Dictionary<string, int> Counts(string text) => Regex.Matches(text, @"⟬STG_[^⟭]*⟭")
+            .Select(m => m.Value).GroupBy(t => t, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+        var expected = Counts(source.Text);
+        var actual = Counts(translated);
+        if (expected.Count != actual.Count || expected.Any(e => actual.GetValueOrDefault(e.Key) != e.Value))
+            throw new InvalidOperationException("Bản dịch làm mất, lặp hoặc thêm ký hiệu bảo vệ tên riêng. Đã chặn kết quả; không tự gửi lại.");
+        return Restore(translated, source.TokenMap);
     }
 
     private AliasPattern? FindMatch(string source, int index)

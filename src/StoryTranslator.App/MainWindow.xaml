@@ -1,42 +1,43 @@
 <Window x:Class="StoryTranslator.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Story Translator" Height="360" Width="520"
-        MinHeight="340" MinWidth="480"
-        WindowStartupLocation="CenterScreen">
-    <Grid Margin="24">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <TextBlock Text="Story Translator" FontSize="24" FontWeight="SemiBold" />
-        <TextBlock Grid.Row="1" Margin="0,8,0,20" TextWrapping="Wrap"
-                   Text="Chỉ chọn vùng màn hình thủ công. Ứng dụng không nhận diện game hay trạng thái cốt truyện." />
-
-        <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Center">
-            <Button x:Name="SelectRegionButton" Content="Chọn vùng hội thoại…" Padding="14,8"
-                    Click="SelectRegion_Click" />
-            <TextBlock x:Name="RegionText" Margin="14,0,0,0" VerticalAlignment="Center"
-                       Text="Chưa chọn vùng" />
+        Title="Story Translator — Thử dịch màn hình" Height="670" Width="580"
+        MinHeight="560" MinWidth="500" WindowStartupLocation="CenterScreen">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="24">
+        <TextBlock Text="Dịch màn hình EN → VI" FontSize="24" FontWeight="SemiBold" />
+        <TextBlock Margin="0,8,0,16" TextWrapping="Wrap"
+                   Text="Chọn vùng chữ rồi bật dịch: giao diện tự thu xuống taskbar, bản dịch phủ ngay vùng chọn. Mở lại cửa sổ từ taskbar để tạm dừng và chỉnh. Bản thử dành cho nội dung ngoài game." />
+        <TextBlock Text="Groq API key — chỉ giữ trong phiên, không lưu xuống đĩa" />
+        <PasswordBox x:Name="ApiKeyBox" Margin="0,6,0,12" Padding="8" />
+        <TextBlock Text="Model Groq (cần được cấp quyền trong tài khoản của bạn)" />
+        <TextBox x:Name="ModelBox" Margin="0,6,0,16" Padding="8" Text="openai/gpt-oss-20b" />
+        <StackPanel Orientation="Horizontal">
+            <Button x:Name="SelectRegionButton" Content="Chọn vùng chữ…" Padding="14,8" Click="SelectRegion_Click" />
+            <TextBlock x:Name="RegionText" Margin="14,0,0,0" VerticalAlignment="Center" Text="Chưa chọn vùng" />
         </StackPanel>
-
-        <GroupBox Grid.Row="3" Header="Chế độ cốt truyện" Margin="0,20,0,16" Padding="12">
+        <CheckBox x:Name="ComicModeCheckBox" Margin="0,12,0,0" Content="Chế độ truyện — OCR ảnh phóng 2×, gom dòng căn giữa" />
+        <CheckBox x:Name="CutsceneModeCheckBox" Margin="0,8,0,0" Content="Chế độ cutscene — chỉ chọn phụ đề vùng trên/dưới khi chọn toàn màn hình" />
+        <Button x:Name="DiagnosticButton" Margin="0,10,0,0" Padding="10,6" Content="Lưu ảnh vùng chọn + box OCR cục bộ (không gửi API)" Click="Diagnostic_Click" />
+        <GroupBox Header="Dịch liên tục" Margin="0,16,0,12" Padding="12">
             <StackPanel>
-                <CheckBox x:Name="StoryModeCheckBox" Content="Bật dịch khi xem cốt truyện"
-                          IsEnabled="False" IsChecked="False" />
-                <TextBlock x:Name="StatusText" Margin="0,10,0,0" TextWrapping="Wrap"
-                           Text="ĐANG TẮT — bộ capture/OCR chưa được nối. Khởi động ứng dụng không bắt đầu chụp màn hình." />
+                <CheckBox x:Name="StoryModeCheckBox" Content="Bật dịch — gửi văn bản OCR tới Groq"
+                          IsChecked="False" Checked="StoryMode_Checked" Unchecked="StoryMode_Unchecked" />
+                <TextBlock x:Name="StatusText" Margin="0,10,0,0" TextWrapping="Wrap" Text="ĐANG TẮT — chưa chụp hoặc gửi chữ." />
             </StackPanel>
         </GroupBox>
-
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button x:Name="OverlayButton" Content="Hiện bản dịch" Padding="12,8" Margin="0,0,10,0" Click="ShowOverlay_Click" />
+        <TextBlock TextWrapping="Wrap" Foreground="#555555" Text="Ảnh được xử lý trên máy. Chỉ chữ trong vùng chọn được gửi tới Groq khi bật. Key và cache dịch chỉ giữ trong bộ nhớ; câu trùng không gửi lại trong cùng phiên. Lỗi API sẽ dừng dịch để tránh gọi lặp." />
+        <TextBlock Margin="0,12,0,2" Text="Độ đậm nền sau từng cụm dịch (không phủ toàn màn hình)" />
+        <Slider x:Name="PanelOpacitySlider" Minimum="0.35" Maximum="1" Value="0.95" TickFrequency="0.05" IsSnapToTickEnabled="True" ValueChanged="PanelOpacity_Changed" />
+        <TextBlock Margin="0,14,0,6" Text="Chữ OCR gần nhất (để đối chiếu)" />
+        <TextBox x:Name="OcrText" Height="90" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+        <Expander Header="Bản dịch đầy đủ gần nhất — đọc/copy khi vùng quá nhỏ" Margin="0,10,0,0">
+            <TextBox x:Name="TranslatedDetailsText" Height="120" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+        </Expander>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button x:Name="OverlayButton" Content="Xem trước vùng (chưa dịch)" Padding="12,8" Margin="0,0,10,0" Click="ShowOverlay_Click" />
             <Button Content="Thoát" Padding="18,8" IsCancel="True" Click="Exit_Click" />
         </StackPanel>
-    </Grid>
+    </StackPanel>
+    </ScrollViewer>
 </Window>
-
-

@@ -10,14 +10,16 @@ using Windows.Storage.Streams;
 namespace StoryTranslator.App;
 
 [SupportedOSPlatform("windows10.0.17763.0")]
-public sealed class WindowsCapturedFrame : ICapturedFrame
+public sealed class WindowsCapturedFrame : ICapturedFrame, IContentFingerprintFrame
 {
-    public WindowsCapturedFrame(SoftwareBitmap softwareBitmap)
+    public WindowsCapturedFrame(SoftwareBitmap softwareBitmap, string? contentFingerprint = null)
     {
         SoftwareBitmap = softwareBitmap ?? throw new ArgumentNullException(nameof(softwareBitmap));
+        ContentFingerprint = contentFingerprint;
     }
 
     public SoftwareBitmap SoftwareBitmap { get; }
+    public string? ContentFingerprint { get; }
 
     public void Dispose() => SoftwareBitmap.Dispose();
 }
@@ -26,10 +28,33 @@ public sealed class WindowsCapturedFrame : ICapturedFrame
 [SupportedOSPlatform("windows10.0.17763.0")]
 public sealed class WindowsRegionCapture : IRegionFrameSource
 {
+    private readonly Func<Rectangle, CancellationToken, Task>? _beforeCapture;
+    private readonly Func<Task>? _afterCapture;
+
+    public WindowsRegionCapture(Func<Rectangle, CancellationToken, Task>? beforeCapture = null, Func<Task>? afterCapture = null)
+    {
+        _beforeCapture = beforeCapture;
+        _afterCapture = afterCapture;
+    }
+
     public async Task<ICapturedFrame> CaptureAsync(Rectangle region, CancellationToken cancellationToken)
     {
+        try
+        {
+            if (_beforeCapture is not null) await _beforeCapture(region, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            return await CaptureCoreAsync(region, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Restoration must run even when the capture token was canceled.
+            if (_afterCapture is not null) await _afterCapture().ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<ICapturedFrame> CaptureCoreAsync(Rectangle region, CancellationToken cancellationToken)
+    {
         ValidateRegion(region);
-        cancellationToken.ThrowIfCancellationRequested();
 
         byte[] bmpBytes = await Task.Run(() => CopyRegionToBmp(region), cancellationToken).ConfigureAwait(false);
         try
@@ -53,7 +78,7 @@ public sealed class WindowsRegionCapture : IRegionFrameSource
                 cancellationToken.ThrowIfCancellationRequested();
             }
 
-            return new WindowsCapturedFrame(softwareBitmap);
+            return new WindowsCapturedFrame(softwareBitmap, Convert.ToHexString(SHA256.HashData(bmpBytes)));
         }
         finally
         {

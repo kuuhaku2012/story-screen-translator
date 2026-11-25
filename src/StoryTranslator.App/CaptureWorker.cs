@@ -6,6 +6,11 @@ namespace StoryTranslator.App;
 
 public interface ICapturedFrame : IDisposable;
 
+public interface IContentFingerprintFrame
+{
+    string? ContentFingerprint { get; }
+}
+
 public interface IRegionFrameSource
 {
     Task<ICapturedFrame> CaptureAsync(Rectangle region, CancellationToken cancellationToken);
@@ -14,6 +19,11 @@ public interface IRegionFrameSource
 public interface IFrameTextRecognizer
 {
     Task<string> RecognizeAsync(ICapturedFrame frame, CancellationToken cancellationToken);
+}
+
+public interface IFrameLayoutRecognizer : IFrameTextRecognizer
+{
+    Task<IReadOnlyList<ScreenTextBlock>> RecognizeLayoutAsync(ICapturedFrame frame, CancellationToken cancellationToken);
 }
 
 /// <summary>Sequential low-rate capture loop. Stop cancels promptly; an in-flight OCR call is allowed to finish and its result is discarded.</summary>
@@ -45,6 +55,7 @@ public sealed class CaptureWorker : IScreenCapture, IAsyncDisposable
     }
 
     public event EventHandler<string>? TextRecognized;
+    public event EventHandler<IReadOnlyList<ScreenTextBlock>>? LayoutRecognized;
 
     public void Start(Rectangle region)
     {
@@ -98,6 +109,8 @@ public sealed class CaptureWorker : IScreenCapture, IAsyncDisposable
     private async Task RunAsync(Rectangle region, CancellationTokenSource session)
     {
         var token = session.Token;
+        string? previousFingerprint = null;
+        IReadOnlyList<ScreenTextBlock>? previousLayout = null;
         try
         {
             while (!token.IsCancellationRequested)
@@ -107,9 +120,27 @@ public sealed class CaptureWorker : IScreenCapture, IAsyncDisposable
                 {
                     using var frame = await _frameSource.CaptureAsync(region, token).ConfigureAwait(false);
                     token.ThrowIfCancellationRequested();
-                    var recognized = await _recognizer.RecognizeAsync(frame, token).ConfigureAwait(false);
-                    token.ThrowIfCancellationRequested();
-                    PublishIfCurrent(session, recognized);
+                    if (_recognizer is IFrameLayoutRecognizer layoutRecognizer && LayoutRecognized is not null)
+                    {
+                        var fingerprint = (frame as IContentFingerprintFrame)?.ContentFingerprint;
+                        var layout = fingerprint is not null && fingerprint == previousFingerprint && previousLayout is not null
+                            ? previousLayout
+                            : await layoutRecognizer.RecognizeLayoutAsync(frame, token).ConfigureAwait(false);
+                        token.ThrowIfCancellationRequested();
+                        previousFingerprint = fingerprint;
+                        previousLayout = layout;
+                        lock (_gate)
+                        {
+                            if (ReferenceEquals(_runCancellation, session) && !session.IsCancellationRequested)
+                                LayoutRecognized?.Invoke(this, layout);
+                        }
+                    }
+                    else
+                    {
+                        var recognized = await _recognizer.RecognizeAsync(frame, token).ConfigureAwait(false);
+                        token.ThrowIfCancellationRequested();
+                        PublishIfCurrent(session, recognized);
+                    }
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested)
                 {
