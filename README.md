@@ -31,3 +31,5 @@ Trong PowerShell ở thư mục dự án:
 ```
 
 Giữ PowerShell mở khi dùng. Đóng ứng dụng để script tự gỡ đăng ký MSIX tạm. Nhập Groq API key trong ứng dụng, chọn vùng chữ, chọn chế độ nếu cần rồi bật dịch. Xem [hướng dẫn sử dụng](docs/USER_GUIDE.md). Các bản `.msix`, model, SDK cục bộ, dữ liệu phiên và ảnh chẩn đoán không được đẩy lên GitHub.
+
+Nếu chia sẻ cho người dùng máy mới, hãy gửi [hướng dẫn cài từ mã nguồn](docs/FRIEND_SETUP.md). Các file `.cmd` chưa phải bộ cài độc lập.
